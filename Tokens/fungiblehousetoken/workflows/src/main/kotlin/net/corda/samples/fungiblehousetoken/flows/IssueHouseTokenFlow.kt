@@ -7,6 +7,7 @@ import com.r3.corda.lib.tokens.contracts.utilities.of
 import com.r3.corda.lib.tokens.workflows.flows.issue.addIssueTokens
 import com.r3.corda.lib.tokens.workflows.utilities.addTokenTypeJar
 import com.r3.corda.lib.tokens.workflows.utilities.getPreferredNotary
+import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
 import net.corda.core.identity.Party
 import net.corda.core.node.services.queryBy
@@ -60,7 +61,14 @@ class IssueHouseTokenFlow(val symbol: String,
 class IssueHouseTokenFlowResponder(val otherSession: FlowSession) : FlowLogic<SignedTransaction>() {
     @Suspendable
     override fun call(): SignedTransaction {
-        return subFlow(ReceiveFinalityFlow(otherSession))
+        val signTransactionFlow = object : SignTransactionFlow(otherSession) {
+            override fun checkTransaction(stx: SignedTransaction) = requireThat {
+                //no requirements
+            }
+        }
+        val txId = subFlow(signTransactionFlow).id
+
+        return subFlow(ReceiveFinalityFlow(otherSession, expectedTxId = txId))
     }
 
 }
